@@ -5,8 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "",
-    "start": "npx nodemon",
-    "start-local": "node app.js"
+    "start-local": "npx nodemon",
+    "start": "node app.js"
   },
   "author": "",
   "license": "ISC",
