@@ -88,6 +88,7 @@ function downloadMediaByUrl(url) {
         const file = fs.createWriteStream(`downloaded_medias/file-${Date.now()}.${mediaFormat}`)
 
         https.get(url, function(response) {
+            console.log('response statusCode: ', response.statusCode)
             response.pipe(file)
 
             file.on("finish", () => {
