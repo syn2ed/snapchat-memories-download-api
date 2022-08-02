@@ -85,7 +85,7 @@ function downloadMediaByUrl(url) {
 
     return new Promise(async (resolve, reject) => {
         console.log('in downloadMediaByUrl promise')
-        const file = fs.createWriteStream(`downloaded_medias/file-${Date.now()}.${mediaFormat}`)
+        const file = await fs.createWriteStream(`downloaded_medias/file-${Date.now()}.${mediaFormat}`)
 
         https.get(url, function(response) {
             console.log('response statusCode: ', response.statusCode)
