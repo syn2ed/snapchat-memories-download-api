@@ -88,7 +88,8 @@ function getDownloadUrlFromMemoryJsonUrl(url) {
 
 function downloadMediaByUrl(url) {
     const mediaFormat = (new URL(url)).pathname.split('.')[1]
-    const mediaPath = `downloaded_medias/${dateNow}/file-${dateNow}.${mediaFormat}`
+    const fileName = new URL(url).pathname.split('/')[3]
+    const mediaPath = `downloaded_medias/${dateNow}/${fileName}.${mediaFormat}`
 
     console.debug('mediaFormat: ', mediaFormat)
 
@@ -111,7 +112,6 @@ function downloadMediaByUrl(url) {
             file.on("finish", () => {
                     file.close()
                     console.log('file stats.size: ', fs.statSync(file.path).size)
-                    console.log("Download Completed")
                     resolve()
                 })
         }).on('error', (e) => {
