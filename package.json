@@ -6,7 +6,7 @@
   "scripts": {
     "test": "",
     "start-local": "npx nodemon",
-    "start": "mkdir downloaded_medias && node app.js"
+    "start": "mkdir -p downloaded_medias && node app.js"
   },
   "author": "",
   "license": "ISC",

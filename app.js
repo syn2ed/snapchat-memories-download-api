@@ -6,7 +6,10 @@ const { https } = require('follow-redirects')
 
 const app = express()
 const port = 3000
-const extractZipsPath = `${__dirname}/extracted_zips/${Date.now()}`
+
+const dateNow = Date.now()
+const extractZipsPath = `${__dirname}/extracted_zips/${dateNow}`
+const extractMediasPath = `${__dirname}/extracted_zips/${dateNow}`
 
 app.use(
     fileUpload({
@@ -15,7 +18,6 @@ app.use(
 )
 
 app.get('/ping', (req, res) => {
-    console.log('dirname: ', __dirname)
     res.send('pong')
 })
 
@@ -29,19 +31,12 @@ app.post('/upload-snapchat-file', async (req, res) => {
     }
 
     try {
-        let snapchatZipObject = req.files.snapchatZip
-
-        var zip = new AdmZip(snapchatZipObject.data)
-        zip.extractAllTo(extractZipsPath, true, true, '')
-
-        let memoriesHistoryJson = fs.readFileSync(extractZipsPath + '/json/memories_history.json')
-        let mediasLinks = JSON.parse(memoriesHistoryJson)["Saved Media"].map((mediaObject) => mediaObject["Download Link"])
-
-        const downloadUrl = await getDownloadUrlFromMemoryJsonUrl(mediasLinks[0])
-
-        await downloadMediaByUrl(downloadUrl)
-
-        //send response
+        await extractZip(req.files.snapchatZip)
+        let mediasLinks = await getMediasLinksByZipPath(extractZipsPath)
+        await downloadMediasByMediasLinks(mediasLinks)
+        
+        
+        //return API response
         res.send("ok")
     } catch (err) {
         res.status(500).send(err)
@@ -52,6 +47,18 @@ app.listen(process.env.PORT || 3000, () => {
     console.log(`Example app listening at http://localhost:3000`)
 })
 
+function extractZip(zipFile) {
+    return new Promise(async (resolve, reject) => {
+        var zip = new AdmZip(zipFile.data)
+        await zip.extractAllTo(extractZipsPath, true, true, '')
+        resolve()
+    })
+}
+
+function getMediasLinksByZipPath(zipPath) {
+    let memoriesHistoryJson = fs.readFileSync(zipPath + '/json/memories_history.json')
+    return JSON.parse(memoriesHistoryJson)["Saved Media"].map((mediaObject) => mediaObject["Download Link"])
+}
 
 function getDownloadUrlFromMemoryJsonUrl(url) {
     return new Promise(async (resolve, reject) => {
@@ -81,19 +88,29 @@ function getDownloadUrlFromMemoryJsonUrl(url) {
 
 function downloadMediaByUrl(url) {
     const mediaFormat = (new URL(url)).pathname.split('.')[1]
-    console.log('mediaFormat: ', mediaFormat)
+    const mediaPath = `downloaded_medias/${dateNow}/file-${dateNow}.${mediaFormat}`
+
+    console.debug('mediaFormat: ', mediaFormat)
 
     return new Promise(async (resolve, reject) => {
-        console.log('in downloadMediaByUrl promise')
-        const file = await fs.createWriteStream(`downloaded_medias/file-${Date.now()}.${mediaFormat}`)
+        // Folder creation for saving medias in. Ex: "downloaded_medias/9379737426"
+        if (!fs.existsSync(`downloaded_medias/${dateNow}`)) {
+            fs.mkdir(`downloaded_medias/${dateNow}`, (err) => {
+                if (err) {
+                    return console.error('folder creation error in downloadMediaByUrl: ', err)
+                }
+            })
+        }
+        
+        const file = await fs.createWriteStream(mediaPath)
 
         https.get(url, function(response) {
-            console.log('response statusCode: ', response.statusCode)
+            console.log('snapchat download url response statusCode: ', response.statusCode)
             response.pipe(file)
 
             file.on("finish", () => {
                     file.close()
-                    console.log('file stats: ', fs.statSync(file.path))
+                    console.log('file stats.size: ', fs.statSync(file.path).size)
                     console.log("Download Completed")
                     resolve()
                 })
@@ -101,4 +118,11 @@ function downloadMediaByUrl(url) {
             console.error('downloadMediaByUrl error: ', e)
           })
     })
+}
+
+async function downloadMediasByMediasLinks(mediasLinks) {
+    for(let i = 0; i < mediasLinks.length; i++) {
+        const downloadUrl = await getDownloadUrlFromMemoryJsonUrl(mediasLinks[i])
+        downloadMediaByUrl(downloadUrl)
+    }
 }
