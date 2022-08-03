@@ -1,4 +1,5 @@
 const express = require('express')
+var zip = require('express-zip')
 const fileUpload = require('express-fileupload')
 var AdmZip = require("adm-zip")
 const fs = require('fs')
@@ -10,6 +11,7 @@ const port = 3000
 const dateNow = Date.now()
 const extractZipsPath = `${__dirname}/extracted_zips/${dateNow}`
 const extractMediasPath = `${__dirname}/downloaded_medias/${dateNow}`
+const outputZipsPath = `${__dirname}/output_zips`
 
 app.use(
     fileUpload({
@@ -33,12 +35,23 @@ app.post('/upload-snapchat-file', async (req, res) => {
     try {
         await extractZip(req.files.snapchatZip)
         let mediasLinks = await getMediasLinksByZipPath(extractZipsPath)
-        await downloadMediasByMediasLinks(mediasLinks)
-        await zipFolderByPath(extractMediasPath)
-        
-        
+        let mediasPaths = await downloadMediasByMediasLinks(mediasLinks)
+        //await zipFolderByPath(extractMediasPath)
+    
+        console.log('mediasPaths: ', mediasPaths.map((mediaPath) => {
+            return {
+                path: mediaPath,
+                name: mediaPath
+            }
+        }))
+
         //return API response
-        res.send("ok")
+        res.zip(mediasPaths.map((mediaPath) => {
+            return {
+                path: mediaPath,
+                name: mediaPath
+            }
+        }))
     } catch (err) {
         res.status(500).send(err)
     }
@@ -50,7 +63,7 @@ app.listen(process.env.PORT || 3000, () => {
 
 function extractZip(zipFile) {
     return new Promise(async (resolve, reject) => {
-        var zip = new AdmZip(zipFile.data)
+        let zip = new AdmZip(zipFile.data)
         await zip.extractAllTo(extractZipsPath, true, true, '')
         resolve()
     })
@@ -113,7 +126,7 @@ function downloadMediaByUrl(url) {
             file.on("finish", () => {
                     file.close()
                     console.log('file stats.size: ', fs.statSync(file.path).size)
-                    resolve()
+                    resolve(mediaPath)
                 })
         }).on('error', (e) => {
             console.error('downloadMediaByUrl error: ', e)
@@ -122,19 +135,30 @@ function downloadMediaByUrl(url) {
 }
 
 async function downloadMediasByMediasLinks(mediasLinks) {
+    let mediasPaths = []
+
     for(let i = 0; i < mediasLinks.length; i++) {
         const downloadUrl = await getDownloadUrlFromMemoryJsonUrl(mediasLinks[i])
-        downloadMediaByUrl(downloadUrl)
+        mediasPaths.push(downloadMediaByUrl(downloadUrl))
     }
+
+    return Promise.all(mediasPaths)
 }
 
 function zipFolderByPath(mediasFolderPath) {
-    var zip = new AdmZip()
-    
+    // Folder creation for saving response zip. Ex: "responseZip/9379737426.zip"
+    if (!fs.existsSync(outputZipsPath)) {
+        fs.mkdir(outputZipsPath, (err) => {
+            if (err) {
+                return console.error('folder creation outputZipsPath error: ', err)
+            }
+        })
+    }
+
+    let zip = new AdmZip()
+    const zipResponsePath = `${outputZipsPath}/${dateNow}.zip`
     zip.addLocalFolder(mediasFolderPath)
+    zip.writeZip(zipResponsePath)
     
-    console.log('zip: ', zip.getEntries())
-
-
-    zip.writeZip("test8.zip")
+    return zipResponsePath
 }
