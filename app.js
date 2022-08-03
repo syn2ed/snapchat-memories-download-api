@@ -9,7 +9,7 @@ const port = 3000
 
 const dateNow = Date.now()
 const extractZipsPath = `${__dirname}/extracted_zips/${dateNow}`
-const extractMediasPath = `${__dirname}/extracted_zips/${dateNow}`
+const extractMediasPath = `${__dirname}/downloaded_medias/${dateNow}`
 
 app.use(
     fileUpload({
@@ -34,6 +34,7 @@ app.post('/upload-snapchat-file', async (req, res) => {
         await extractZip(req.files.snapchatZip)
         let mediasLinks = await getMediasLinksByZipPath(extractZipsPath)
         await downloadMediasByMediasLinks(mediasLinks)
+        await zipFolderByPath(extractMediasPath)
         
         
         //return API response
@@ -89,14 +90,14 @@ function getDownloadUrlFromMemoryJsonUrl(url) {
 function downloadMediaByUrl(url) {
     const mediaFormat = (new URL(url)).pathname.split('.')[1]
     const fileName = new URL(url).pathname.split('/')[3]
-    const mediaPath = `downloaded_medias/${dateNow}/${fileName}.${mediaFormat}`
+    const mediaPath = `downloaded_medias/${dateNow}/${fileName}`
 
     console.debug('mediaFormat: ', mediaFormat)
 
     return new Promise(async (resolve, reject) => {
         // Folder creation for saving medias in. Ex: "downloaded_medias/9379737426"
-        if (!fs.existsSync(`downloaded_medias/${dateNow}`)) {
-            fs.mkdir(`downloaded_medias/${dateNow}`, (err) => {
+        if (!fs.existsSync(extractMediasPath)) {
+            fs.mkdir(extractMediasPath, (err) => {
                 if (err) {
                     return console.error('folder creation error in downloadMediaByUrl: ', err)
                 }
@@ -125,4 +126,15 @@ async function downloadMediasByMediasLinks(mediasLinks) {
         const downloadUrl = await getDownloadUrlFromMemoryJsonUrl(mediasLinks[i])
         downloadMediaByUrl(downloadUrl)
     }
+}
+
+function zipFolderByPath(mediasFolderPath) {
+    var zip = new AdmZip()
+    
+    zip.addLocalFolder(mediasFolderPath)
+    
+    console.log('zip: ', zip.getEntries())
+
+
+    zip.writeZip("test8.zip")
 }
