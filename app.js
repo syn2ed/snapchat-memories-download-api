@@ -11,7 +11,6 @@ const port = 3000
 const dateNow = Date.now()
 const extractZipsPath = `${__dirname}/extracted_zips/${dateNow}`
 const extractMediasPath = `${__dirname}/downloaded_medias/${dateNow}`
-const outputZipsPath = `${__dirname}/output_zips`
 
 app.use(
     fileUpload({
@@ -36,20 +35,12 @@ app.post('/upload-snapchat-file', async (req, res) => {
         await extractZip(req.files.snapchatZip)
         let mediasLinks = await getMediasLinksByZipPath(extractZipsPath)
         let mediasPaths = await downloadMediasByMediasLinks(mediasLinks)
-        //await zipFolderByPath(extractMediasPath)
-    
-        console.log('mediasPaths: ', mediasPaths.map((mediaPath) => {
-            return {
-                path: mediaPath,
-                name: mediaPath
-            }
-        }))
 
         //return API response
         res.zip(mediasPaths.map((mediaPath) => {
             return {
                 path: mediaPath,
-                name: mediaPath
+                name: mediaPath.split('/')[2]
             }
         }))
     } catch (err) {
@@ -143,22 +134,4 @@ async function downloadMediasByMediasLinks(mediasLinks) {
     }
 
     return Promise.all(mediasPaths)
-}
-
-function zipFolderByPath(mediasFolderPath) {
-    // Folder creation for saving response zip. Ex: "responseZip/9379737426.zip"
-    if (!fs.existsSync(outputZipsPath)) {
-        fs.mkdir(outputZipsPath, (err) => {
-            if (err) {
-                return console.error('folder creation outputZipsPath error: ', err)
-            }
-        })
-    }
-
-    let zip = new AdmZip()
-    const zipResponsePath = `${outputZipsPath}/${dateNow}.zip`
-    zip.addLocalFolder(mediasFolderPath)
-    zip.writeZip(zipResponsePath)
-    
-    return zipResponsePath
 }
