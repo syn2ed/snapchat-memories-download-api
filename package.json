@@ -13,6 +13,7 @@
   "dependencies": {
     "adm-zip": "^0.5.9",
     "commander": "^8.0.0",
+    "cors": "^2.8.5",
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
     "express-zip": "^3.0.0",

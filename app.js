@@ -1,5 +1,6 @@
 const express = require('express')
 var zip = require('express-zip')
+var cors = require('cors')
 const fileUpload = require('express-fileupload')
 var AdmZip = require("adm-zip")
 const fs = require('fs')
@@ -7,6 +8,12 @@ const { https } = require('follow-redirects')
 
 const app = express()
 const port = 3000
+
+var corsOptions = {
+  origin: '*',
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
+app.use(cors(corsOptions))
 
 const dateNow = Date.now()
 const extractZipsPath = `${__dirname}/extracted_zips/${dateNow}`
@@ -23,11 +30,8 @@ app.get('/ping', (req, res) => {
 })
 
 app.post('/upload-snapchat-file', async (req, res) => {
-    if (!req.files) {
-        res.send({
-            status: false,
-            message: 'No file uploaded',
-        })
+    if (!req.files || !req.files.snapchatZip) {
+        res.status(400).send("No file uploaded")
         return
     }
 
