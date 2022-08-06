@@ -47,7 +47,10 @@ app.post('/upload-snapchat-file', async (req, res) => {
                 name: mediaPath.split('/')[2]
             }
         }))
+        
+        console.log('/upload-snapchat-file endpoint process successful')
     } catch (err) {
+        console.error('/upload-snapchat-file endpoint error: ', err)
         res.status(500).send(err)
     }
 })
@@ -100,7 +103,7 @@ function downloadMediaByUrl(url) {
     const fileName = new URL(url).pathname.split('/')[3]
     const mediaPath = `downloaded_medias/${dateNow}/${fileName}`
 
-    console.debug('mediaFormat: ', mediaFormat)
+    //console.debug('mediaFormat: ', mediaFormat)
 
     return new Promise(async (resolve, reject) => {
         // Folder creation for saving medias in. Ex: "downloaded_medias/9379737426"
@@ -115,12 +118,15 @@ function downloadMediaByUrl(url) {
         const file = await fs.createWriteStream(mediaPath)
 
         https.get(url, function(response) {
-            console.log('snapchat download url response statusCode: ', response.statusCode)
+            if (response.statusCode != 200) {
+                console.error('snapchat download url response statusCode != 200: ', response.statusCode)
+            }
+        
             response.pipe(file)
 
             file.on("finish", () => {
                     file.close()
-                    console.log('file stats.size: ', fs.statSync(file.path).size)
+                    //console.debug('file stats.size: ', fs.statSync(file.path).size)
                     resolve(mediaPath)
                 })
         }).on('error', (e) => {
