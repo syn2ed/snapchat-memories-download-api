@@ -36,17 +36,38 @@ app.post('/upload-snapchat-file', async (req, res) => {
     }
 
     try {
+        console.log('start downloading medias of zip size: ' + req.files.snapchatZip.size)
+
         await extractZip(req.files.snapchatZip)
         let mediasLinks = await getMediasLinksByZipPath(extractZipsPath)
         let mediasPaths = await downloadMediasByMediasLinks(mediasLinks)
 
         //return API response
-        res.zip(mediasPaths.map((mediaPath) => {
+        await res.zip(mediasPaths.map((mediaPath) => {
             return {
                 path: mediaPath,
                 name: mediaPath.split('/')[2]
             }
         }))
+        
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+        await delay(600000)
+
+        /* delete downladed_medias folder */
+        console.log('deleting folder: ', extractMediasPath)
+        fs.rm(extractMediasPath, { recursive: true, force: true }, (err) => {
+            if (err) {
+                return console.error('folder deletion error: ', err)
+            }
+        })
+
+        /* delete extracted_zips folder */
+        console.log('deleting folder: ', extractZipsPath)
+        fs.rm(extractZipsPath, { recursive: true, force: true }, (err) => {
+            if (err) {
+                return console.error('folder deletion error: ', err)
+            }
+        })
         
         console.log('/upload-snapchat-file endpoint process successful')
     } catch (err) {
