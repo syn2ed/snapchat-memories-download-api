@@ -89,6 +89,11 @@ function extractZip(zipFile) {
 }
 
 function getMediasLinksByZipPath(zipPath) {
+    if (!fs.existsSync(zipPath + '/json/memories_history.json')) {
+        console.log('in if (!fs.existsSync(zipPath + /json/memories_history.json')
+        throw new Error('memories_history.json not exists')
+    }
+
     let memoriesHistoryJson = fs.readFileSync(zipPath + '/json/memories_history.json')
     return JSON.parse(memoriesHistoryJson)["Saved Media"].map((mediaObject) => mediaObject["Download Link"])
 }
